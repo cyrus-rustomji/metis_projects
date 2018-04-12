@@ -1,15 +1,27 @@
 import urllib.request
 import requests
 import csv
-import math
+from math import radians, cos, sin, asin, sqrt
 
 # secrets.py is ignored by git
 from secrets import meetup_auth_token
 
-def euclidean_distance(p1, p2):
-    dist = [(a - b) ** 2 for a, b in zip(p1, p2)]
-    dist = math.sqrt(sum(dist))
-    return dist
+# Copied from https://stackoverflow.com/a/15737218
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    # Radius of earth in kilometers is 6371
+    km = 6371* c
+    return km
 
 def fetch_data_and_write_csv(station_coordinates):
     headers = {"Authorization": meetup_auth_token }
@@ -28,18 +40,20 @@ def fetch_data_and_write_csv(station_coordinates):
             lat = event.get('venue', {}).get('lat', '')
             lon = event.get('venue', {}).get('lon', '')
             if lat and lon:
-                distance = euclidean_distance([latitude, longitude], [lat, lon])
+                distance = haversine(longitude, latitude, lon, lat)
+                # Convert km to miles
+                distance *= 0.62137
             else:
                 continue
-            if distance < 0.25:
-                events.append({
-                    'group_name': event.get('group', {}).get('name', ''),
-                    'yes_rsvp_count': event.get('yes_rsvp_count', ''),
-                    'latitude': lat,
-                    'longitude': lon,
-                    'station': station,
-                    'distance': distance
-                })
+            events.append({
+                'group_name': event.get('group', {}).get('name', ''),
+                'yes_rsvp_count': event.get('yes_rsvp_count', ''),
+                'latitude': lat,
+                'longitude': lon,
+                'station': station,
+                'distance': distance,
+                'proximity_weighted_rsvp_count': event.get('yes_rsvp_count', 0) * (1 - distance)
+            })
 
     with open('meetup_data.csv', 'w') as meetup_data_csv:
         dict_writer = csv.DictWriter(meetup_data_csv, events[0].keys())

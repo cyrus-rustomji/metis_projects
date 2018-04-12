@@ -1,15 +1,21 @@
 import urllib.request
 import requests
 import csv
+import math
 
 # secrets.py is ignored by git
 from secrets import meetup_auth_token
+
+def euclidean_distance(p1, p2):
+    dist = [(a - b) ** 2 for a, b in zip(p1, p2)]
+    dist = math.sqrt(sum(dist))
+    return dist
 
 def fetch_data_and_write_csv(station_coordinates):
     headers = {"Authorization": meetup_auth_token }
     base_url = 'https://api.meetup.com/find/upcoming_events'
     events = []
-    # quarter mile
+    # one mile is the minimum radius the API will accept
     search_radius = 1
     search_query = 'women'
     endpoint = lambda lt, lg: '{0}?lat={1}&lon={2}&radius={3}&text={4}&key={5}'.format(base_url, lt, lg, search_radius, search_query, meetup_auth_token)
@@ -19,13 +25,21 @@ def fetch_data_and_write_csv(station_coordinates):
         meetup_data = requests.get(endpoint(latitude, longitude), headers=headers).json()
         print(meetup_data)
         for event in meetup_data['events']:
-            events.append({
-                'group_name': event.get('group', {}).get('name', ''),
-                'yes_rsvp_count': event.get('yes_rsvp_count', ''),
-                'latitude': event.get('venue', {}).get('lat', ''),
-                'longitude': event.get('venue', {}).get('lon', ''),
-                'station': station
-            })
+            lat = event.get('venue', {}).get('lat', '')
+            lon = event.get('venue', {}).get('lon', '')
+            if lat and lon:
+                distance = euclidean_distance([latitude, longitude], [lat, lon])
+            else:
+                continue
+            if distance < 0.25:
+                events.append({
+                    'group_name': event.get('group', {}).get('name', ''),
+                    'yes_rsvp_count': event.get('yes_rsvp_count', ''),
+                    'latitude': lat,
+                    'longitude': lon,
+                    'station': station,
+                    'distance': distance
+                })
 
     with open('meetup_data.csv', 'w') as meetup_data_csv:
         dict_writer = csv.DictWriter(meetup_data_csv, events[0].keys())

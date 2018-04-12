@@ -2,8 +2,11 @@ import urllib.request
 import requests
 import csv
 
+# secrets.py is ignored by git
+from secrets import yelp_auth_token
+
 def fetch_data_and_write_csv(station_coordinates):
-    headers = {"Authorization":"Bearer 421BA_xYdh0Xq7dGFe1pkaI7WqWnJ5UcHZZgg8WwNQ34_7GlbvrRU4dnCGE9dmXOZrX5xVFquiL9X4B35qBuBcA4Jt1D9ys3h0z6pxnfFd8Frf9UYXQ9xKMDOnjNWnYx"}
+    headers = {"Authorization": yelp_auth_token }
     base_url = 'https://api.yelp.com/v3/businesses/search'
     businesses = []
     # quarter mile in meters

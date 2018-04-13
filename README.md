@@ -28,6 +28,7 @@
 ![Map View](/screenshots/2.png)
 ![Map View](/screenshots/3.png)
 ![Map View](/screenshots/4.png)
+![Map View](/screenshots/5.png)
 
 
 
